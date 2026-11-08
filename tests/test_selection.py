@@ -650,7 +650,8 @@ def test_every_platform_declares_a_ceiling_matched_to_its_medium():
     # NDS and 3DS topped out at 8GB, while Switch shipped 32GB cards -- so
     # a single number would either reject real Switch dumps or admit four
     # times the largest NDS/3DS game ever made.
-    big_cards = {"nds": 8 * GB, "3ds": 8 * GB, "switch": 32 * GB, "psvita": 16 * GB}
+    big_cards = {"nds": 8 * GB, "3ds": 8 * GB, "switch": 32 * GB,
+                 "switch-2": 64 * GB, "psvita": 16 * GB}
     # Blu-ray, one medium past every disc the DISC limit was written for: a
     # PS3 dual-layer disc is 50GB and the biggest title in the catalogue
     # measures 44.8GB, so a 16GB ceiling would reject the platform's own

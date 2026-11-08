@@ -57,7 +57,7 @@ Supported optical systems include PlayStation 2, Dreamcast, GameCube, Saturn, PS
 
 ROMarr can expose routes through configured EmulatorJS, Ruffle, js-dos, Emularity or streaming hosts where appropriate. This is not a promise that every platform/format runs in a browser. Read the page's reason when a route is unavailable.
 
-Advanced streaming setup and validation limits are in [streaming hosts](design/streaming-hosts.md). PS4/PS5 packages and PS Vita formats have [separate search/import limits](MODERN-CONSOLES.md); ROMarr does not install them onto a console or provide browser emulation for those systems.
+Advanced streaming setup and validation limits are in [streaming hosts](design/streaming-hosts.md). PS4/PS5 packages, PS Vita formats and Nintendo Switch 2 .nup packages have [separate search/import limits](MODERN-CONSOLES.md); ROMarr does not install them onto a console or provide browser emulation for those systems.
 
 ## Browser downloads
 

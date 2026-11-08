@@ -99,7 +99,7 @@ The image includes archive tools. **ROM Hub is included on amd64/arm64; it is un
 - Exact duplicate audit, quarantine and restore; a preview comes before any move.
 - Preview-first renaming for DAT-verified single files already in a library, with a saved restore journal.
 - Multiple library destinations, notifications, import lists and frontend exports.
-- PS4, PS5 and PS Vita search/import formats, with [explicit playback and installation limits](docs/MODERN-CONSOLES.md).
+- PS4, PS5, PS Vita and Nintendo Switch 2 search/import formats, with [explicit playback and installation limits](docs/MODERN-CONSOLES.md).
 
 Source access, available files, credentials and platform support vary. Check the result and the task history; a configured connection does not guarantee a particular game is available.
 

@@ -30,6 +30,9 @@ PC_GAME_CATEGORIES = range(4050, 4070)
 # up importing a Switch package into your SNES folder.
 FOREIGN_PLATFORM_MARKERS = {
     "nintendo switch", "switch", "nsp", "xci",
+    # "Nintendo Switch 2" contains the Switch's alias; tried longest-first,
+    # these make a Switch request read it as another machine.
+    "nintendo switch 2", "switch 2", "switch2",
     "playstation", "ps1", "ps2", "ps3", "ps4", "ps5", "psp", "psx", "vita",
     # Spelled out, because a listing usually writes the machine in full and
     # the short forms never appear. Without these a PlayStation request took
@@ -58,6 +61,16 @@ FOREIGN_PLATFORM_MARKERS = {
     # never says Wii.
     "virtual console", "wiiware", "wad", "eshop",
 }
+
+# Package formats name their machine whatever else the title says. "Switch 2
+# Edition NSP" names the Switch 2 but ships as a Switch package, so neither
+# request takes it.
+_PACKAGE_MARKERS = ("nsp", "xci", "nsz", "xcz", "nup")
+
+# "Switch 2.0 Update" and "[Switch] 2 GB" are a version and a size, not the
+# Switch 2; "Switch.2.2025" is the Switch 2 and a year. Matched on the raw
+# title, before punctuation is folded away.
+_SWITCH_THEN_NUMBER = re.compile(r"(switch[\W_]*)2(?=[.,]\d{1,2}(?!\d)|\s*[gm]i?b\b)")
 
 
 # Scene markers that only ever appear on a PC release. Kept apart from
@@ -557,12 +570,17 @@ def judge(release: Release, wanted: str,
         own = {platform.slug.lower(), platform.name.lower(), *platform.aliases,
                *platform.native_markers}
         own_words = {w for entry in own for w in entry.split()}
+        named = _SWITCH_THEN_NUMBER.sub(r"\1", lowered)
+        package = next((m for m in _PACKAGE_MARKERS
+                        if m not in own and _mentions(named, m)), None)
+        if package:
+            return Judgement(-300, verdict=f"names another platform ({package})")
         # Longest first, so the most specific name in the title decides. Every
         # Sony console contains "playstation", so checking the short alias
         # first exempted "PlayStation 2" from a PlayStation request and let a
         # PS2 disc win a PSX search.
         for marker in sorted(FOREIGN_PLATFORM_MARKERS, key=len, reverse=True):
-            if not _mentions(lowered, marker):
+            if not _mentions(named, marker):
                 continue
             if marker in own or marker in own_words:
                 # This platform's own name. Nothing more specific matched, so
@@ -737,7 +755,7 @@ def infer_platform(release: Release) -> Platform | None:
             return owners[0]
 
     # 2. Explicit platform name / alias in title (longest first)
-    lowered = (release.title or "").lower()
+    lowered = _SWITCH_THEN_NUMBER.sub(r"\1", (release.title or "").lower())
     candidates: list[tuple[int, str, Platform]] = []
     for p in PLATFORMS:
         tokens = set([p.slug.lower(), p.name.lower(), *(a.lower() for a in p.aliases)])

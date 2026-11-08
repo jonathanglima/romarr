@@ -1,4 +1,4 @@
-# PlayStation 4, PlayStation 5 and Vita
+# PlayStation 4, PlayStation 5, Vita and Nintendo Switch 2
 
 ROMarr recognizes PS4 (ps4), PS5 (ps5) and PlayStation Vita (psvita).
 These are acquisition and library organization targets. They do not add
@@ -16,3 +16,13 @@ match remains unknown, never automatically verified. Console installation
 and external playback depend on the user's own device and software.
 Folder dumps, split packages, updates/DLC relationships and installation on
 hardware are not implemented by these platform declarations.
+
+## Nintendo Switch 2
+
+Nintendo Switch 2 (switch-2) is separate from the Switch (switch). It
+accepts .nup packages and imports them as they are; ROMarr does not split
+or install them. Switch requests reject titles naming the Switch 2 or .nup;
+Switch 2 requests reject NSP, XCI, NSZ and XCZ releases. A title naming only
+"Switch" is still accepted for a Switch 2 request, as "Xbox" is for Xbox 360
+and "PlayStation" for PS2, so check such results. TitleDB and the NSP/XCI
+game-folder routing are Switch-only.

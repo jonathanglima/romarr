@@ -266,7 +266,13 @@ PLATFORMS: tuple[Platform, ...] = (
              (".nsp", ".xci", ".nca", ".xcz", ".nsz"),
              ("nintendo switch", "switch"),
              max_size=32 * GB, media=CARTRIDGE,
-             native_markers=("eshop", "nsp", "xci")),
+             native_markers=("eshop", "nsp", "xci", "nsz", "xcz")),
+    # Its own RomM folder and machine, not a Switch revision. Cards go up to
+    # 64GB. TitleDB covers the Switch catalogue only.
+    Platform("switch-2", "Nintendo Switch 2", (".nup",),
+             ("nintendo switch 2", "switch 2", "switch2"),
+             max_size=64 * GB, media=CARTRIDGE,
+             native_markers=("nup",)),
     # The two Xbox generations are separate folders in RomM and separate
     # machines to every emulator, so they are separate here. Naming them is
     # also what lets `selection` tell them apart: "xbox" is a foreign-platform
