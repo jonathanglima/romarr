@@ -10,10 +10,12 @@ and with no false positives either way.
 
 from __future__ import annotations
 
+import subprocess
 import zipfile
 
 import pytest
 
+from romarr.library import bsdtar_path
 from romarr.sniff import identify_archive, identify_file
 
 
@@ -88,6 +90,15 @@ def test_only_zip_is_opened_here(tmp_path):
     path.write_bytes(b"7z\xbc\xaf\x27\x1c" + b"\x00" * 256)
     assert identify_archive(path) is None
     assert identify_file(path) is None
+
+
+@pytest.mark.skipif(bsdtar_path() is None, reason="bsdtar not installed")
+def test_a_bracketed_7z_member_is_identified(tmp_path):
+    (tmp_path / "Game (USA) [!].nes").write_bytes(b"NES\x1a" + b"\x00" * 512)
+    path = tmp_path / "game.7z"
+    subprocess.run([bsdtar_path(), "--format=7zip", "-cf", str(path), "-C",
+                    str(tmp_path), "Game (USA) [!].nes"], check=True)
+    assert identify_archive(path).platform == "nes"
 
 
 def test_it_reads_one_member_not_the_whole_archive(tmp_path):

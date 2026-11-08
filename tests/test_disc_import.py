@@ -6,6 +6,7 @@ in the library without its `.bin`. Everything else here is in service of it.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import zipfile
@@ -14,7 +15,9 @@ from pathlib import Path
 import pytest
 
 from romarr import library
-from romarr.library import bsdtar_path, import_rom as _import_rom, list_candidates
+from romarr.dat import hash_bytes
+from romarr.library import (bsdtar_member, bsdtar_path, import_rom as _import_rom,
+                             list_candidates)
 from romarr.platforms import by_slug
 
 
@@ -158,6 +161,38 @@ def test_a_7z_of_a_disc_imports(tmp_path):
 def test_list_candidates_reads_a_7z(tmp_path):
     make_7z(tmp_path / "a.7z", {"x.chd": b"1", "notes.nfo": b"2"}, tmp_path)
     assert sorted(list_candidates(tmp_path / "a.7z")) == ["notes.nfo", "x.chd"]
+
+
+@pytest.mark.parametrize("name, escaped", [
+    ("Game (USA) [!].sfc", r"Game (USA) \[!\].sfc"),
+    ("Disc *.bin", r"Disc \*.bin"),
+    ("Disc ?.bin", r"Disc \?.bin"),
+    (r"back\\slash.bin", r"back\\slash.bin"),
+])
+def test_bsdtar_member_escapes_pattern_characters(name, escaped):
+    assert bsdtar_member(name) == escaped
+
+
+@needs_bsdtar
+def test_a_7z_member_with_pattern_characters_imports(tmp_path):
+    """Release names are full of brackets; bsdtar -x reads them as a pattern."""
+    downloads, lib = tmp_path / "dl", tmp_path / "lib"
+    downloads.mkdir()
+    make_7z(downloads / "g.7z", {"Game (USA) [!].sfc": b"\x44" * 65536}, tmp_path)
+    result = import_rom(downloads / "g.7z", SNES, lib)
+    assert result.ok, result.reason
+    assert result.destination.read_bytes() == b"\x44" * 65536
+
+
+@needs_bsdtar
+@pytest.mark.skipif(os.name == "nt", reason="? is not a valid Windows filename")
+def test_a_wildcard_member_name_extracts_only_itself(tmp_path):
+    make_7z(tmp_path / "a.7z", {"Disc ?.bin": b"q", "Disc 1.bin": b"1"}, tmp_path)
+    src = library._BsdtarSource(tmp_path / "a.7z", bsdtar_path())
+    assert src.read("Disc ?.bin") == b"q"
+    src.copy("Disc ?.bin", tmp_path / "out")
+    assert (tmp_path / "out").read_bytes() == b"q"
+    assert src.hash("Disc ?.bin") == hash_bytes(b"q")
 
 
 def test_an_archive_format_with_no_tool_fails_by_name(tmp_path, monkeypatch):

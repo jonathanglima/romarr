@@ -197,6 +197,16 @@ class _ZipSource(_Source):
             return hash_stream(src, suffix=suffix)
 
 
+def bsdtar_member(name: str) -> str:
+    r"""A name from `bsdtar -t`, escaped so `bsdtar -x` matches only that member.
+
+    `-x` takes patterns: `Game [v0].xci` matches nothing and `Disc ?.bin`
+    also extracts `Disc 1.bin`. `-t` already prints a backslash as `\\`,
+    its escaped form, so only `[ ] * ?` need escaping here.
+    """
+    return re.sub(r"([][*?])", r"\\\1", name)
+
+
 class _BsdtarSource(_Source):
     """7z and rar, via libarchive.
 
@@ -220,11 +230,11 @@ class _BsdtarSource(_Source):
                 if n and not n.endswith("/") and is_safe_name(n, self.path.parent)]
 
     def read(self, name):
-        return self._run(["-xOf", str(self.path), name]).stdout
+        return self._run(["-xOf", str(self.path), "--", bsdtar_member(name)]).stdout
 
     def copy(self, name, destination):
         with open(destination, "wb") as dst:
-            subprocess.run([self.tool, "-xOf", str(self.path), name],
+            subprocess.run([self.tool, "-xOf", str(self.path), "--", bsdtar_member(name)],
                            stdout=dst, check=True, timeout=600)
 
     #: Seconds `bsdtar` may go without producing a byte before `hash` gives
@@ -243,7 +253,7 @@ class _BsdtarSource(_Source):
         stalled = threading.Event()
         finished = threading.Event()
         last_byte = [time.monotonic()]
-        with subprocess.Popen([self.tool, "-xOf", str(self.path), name],
+        with subprocess.Popen([self.tool, "-xOf", str(self.path), "--", bsdtar_member(name)],
                               stdout=subprocess.PIPE,
                               stderr=subprocess.DEVNULL) as proc:
 
