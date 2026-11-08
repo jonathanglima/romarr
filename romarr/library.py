@@ -378,16 +378,33 @@ class MissingArchiveTool(Exception):
     """The download is in a format no installed tool can open."""
 
 
+#: Later volumes of a split archive: the one archive beside them is only part of it.
+_SPLIT_VOLUME = re.compile(r"\.[rz]\d{2}$", re.IGNORECASE)
+
+
+def _inner_archive(folder: Path, platform: Platform | None) -> Path | None:
+    """The archive a download folder's game is inside, or None (#115).
+
+    Either the folder's only file, or its only archive when nothing beside it
+    (cover art, screenshots, metadata) has one of the platform's extensions.
+    """
+    files = [p for p in folder.rglob("*") if p.is_file()
+             and not any(part.startswith(".") for part in p.relative_to(folder).parts)]
+    archives = [p for p in files if p.suffix.lower() in ARCHIVE_SUFFIXES]
+    if len(archives) != 1:
+        return None
+    if len(files) > 1 and (platform is None or any(
+            p.suffix.lower() in platform.extensions or _SPLIT_VOLUME.search(p.name)
+            for p in files)):
+        return None
+    return archives[0]
+
+
 def _source_for(download: Path, platform: Platform | None = None) -> _Source:
-    # When the download is a directory whose only non-hidden file is an archive,
-    # unwrap it so the import looks inside the selected archive (#115).
     if download.is_dir():
-        non_hidden = [p for p in download.iterdir() if not p.name.startswith(".")]
-        if len(non_hidden) == 1 and non_hidden[0].is_file():
-            single_file = non_hidden[0]
-            single_suffix = single_file.suffix.lower()
-            if single_suffix in _STDLIB_ARCHIVES or single_suffix in ARCHIVE_SUFFIXES:
-                return _source_for(single_file, platform)
+        archive = _inner_archive(download, platform)
+        if archive is not None:
+            return _source_for(archive, platform)
 
     # For MAME, FBNeo and DOSBox the archive IS the ROM: the core opens it and
     # expects its internal layout. Looking inside would pick one chip dump out

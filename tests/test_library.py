@@ -112,6 +112,86 @@ def test_imports_from_a_directory_download(tmp_path):
     assert result.destination.name == "Game (USA).smc"
 
 
+# --- a folder whose game is inside its one archive ------------------------
+
+def _folder_with_extras(folder):
+    """Cover art, a screenshot, metadata.json and an HTML page, no ROM."""
+    (folder / "imgs" / "covers").mkdir(parents=True)
+    (folder / "imgs" / "screenshots").mkdir(parents=True)
+    (folder / "imgs" / "covers" / "cover1.jpg").write_bytes(b"x")
+    (folder / "imgs" / "screenshots" / "shot1.png").write_bytes(b"x")
+    (folder / "metadata.json").write_text("{}")
+    (folder / "index.html").write_text("<html></html>")
+    return folder
+
+
+def test_imports_the_rom_inside_the_one_archive_of_a_folder(tmp_path):
+    library = tmp_path / "library"
+    folder = _folder_with_extras(tmp_path / "Some Game (USA)")
+    make_zip(folder / "Some Game (USA).zip", ["Some Game (USA).smc"])
+
+    result = import_rom(folder, SNES, library)
+    assert result.ok, result.reason
+    assert result.destination == library / "snes" / "Some Game (USA).smc"
+
+
+def test_hidden_archives_beside_the_one_archive_are_ignored(tmp_path):
+    library = tmp_path / "library"
+    folder = _folder_with_extras(tmp_path / "Some Game (USA)")
+    make_zip(folder / "Some Game (USA).zip", ["Some Game (USA).smc"])
+    (folder / "._Some Game (USA).zip").write_bytes(b"x")
+    (folder / ".unwanted").mkdir()
+    make_zip(folder / ".unwanted" / "Other Game (USA).zip", ["Other Game (USA).smc"])
+
+    result = import_rom(folder, SNES, library)
+    assert result.ok, result.reason
+    assert result.destination.name == "Some Game (USA).smc"
+
+
+def test_imports_the_one_archive_inside_a_subfolder(tmp_path):
+    library = tmp_path / "library"
+    folder = tmp_path / "Some Game (USA)"
+    (folder / "game").mkdir(parents=True)
+    make_zip(folder / "game" / "Some Game (USA).zip", ["Some Game (USA).smc"])
+
+    result = import_rom(folder, SNES, library)
+    assert result.ok, result.reason
+    assert result.destination.name == "Some Game (USA).smc"
+
+
+def test_a_loose_rom_wins_over_an_archive_beside_it(tmp_path):
+    library = tmp_path / "library"
+    folder = _folder_with_extras(tmp_path / "Some Game (USA)")
+    (folder / "Some Game (USA).smc").write_bytes(b"y" * 512)
+    make_zip(folder / "covers.zip", ["Other Game (USA).smc"])
+
+    result = import_rom(folder, SNES, library)
+    assert result.ok, result.reason
+    assert result.destination.name == "Some Game (USA).smc"
+
+
+def test_a_folder_with_two_archives_is_not_guessed_at(tmp_path):
+    library = tmp_path / "library"
+    folder = _folder_with_extras(tmp_path / "Some Game (USA)")
+    make_zip(folder / "Some Game (USA).zip", ["Some Game (USA).smc"])
+    make_zip(folder / "Some Game (Europe).zip", ["Some Game (Europe).smc"])
+
+    result = import_rom(folder, SNES, library)
+    assert not result.ok
+    assert "no Super Nintendo ROM" in result.reason
+
+
+def test_a_split_archive_in_a_folder_is_not_opened_by_its_first_part(tmp_path):
+    library = tmp_path / "library"
+    folder = _folder_with_extras(tmp_path / "Some Game (USA)")
+    (folder / "Some Game (USA).rar").write_bytes(b"Rar!")
+    (folder / "Some Game (USA).r00").write_bytes(b"x")
+
+    result = import_rom(folder, SNES, library)
+    assert not result.ok
+    assert "no Super Nintendo ROM" in result.reason
+
+
 def test_refuses_to_overwrite_unless_told(tmp_path):
     library = tmp_path / "library"
     (library / "snes").mkdir(parents=True)
