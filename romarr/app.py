@@ -3167,7 +3167,7 @@ class ROMarr:
         ``POST /api/v1/collection/reconcile``.
         """
         from .library import _source_for
-        from .dat import VERIFIED as _VERIFIED, hash_bytes as _hash_bytes
+        from .dat import VERIFIED as _VERIFIED
 
         platform = resolve(platform_slug)
         if platform is None:
@@ -3188,12 +3188,11 @@ class ROMarr:
                 try:
                     source = _source_for(path, platform)
                     for member in source.names():
-                        data = source.read(member)
-                        if data is None:
+                        suffix = Path(member.replace("\\", "/")).suffix
+                        hashes = source.hash(member, suffix)
+                        if hashes is None:
                             continue
-                        match = self.dats.lookup(**_hash_bytes(
-                            data,
-                            suffix=Path(member.replace("\\", "/")).suffix))
+                        match = self.dats.lookup(**hashes)
                         if match.status == _VERIFIED and match.game:
                             verified_titles.add(match.game)
                 except Exception:  # noqa: BLE001 - one bad file must not stop it

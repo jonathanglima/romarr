@@ -12,8 +12,10 @@ fulfils any same-platform wanted title that maps to a verified dump.
 from __future__ import annotations
 
 import hashlib
+import zipfile
 from xml.sax.saxutils import quoteattr
 
+from romarr import library
 from romarr.app import ROMarr
 from romarr.dat import DatIndex, parse_dat
 
@@ -179,3 +181,22 @@ def test_reconcile_is_auto_invoked_after_a_verified_import(tmp_path):
     ok = [r for r in s.import_finished() if r.get("ok")]
     assert ok, "the SNES import did not succeed"
     assert before == 1 and s.store.wanted == []
+
+
+def test_reconcile_streams_instead_of_reading_members_whole(tmp_path, monkeypatch):
+    """The sweep hashes like `verify_set` (#91): no whole-member `read`."""
+    reads = []
+    for source in (library._PathSource, library._ZipSource):
+        monkeypatch.setattr(source, "read",
+                            lambda self, name: reads.append(name))
+    s = svc(tmp_path, dat_for("Fantastic Night Dreams - Cotton (Japan)"))
+    place_verified(tmp_path, "Cotton.sfc")
+    with zipfile.ZipFile(tmp_path / "roms" / "snes" / "Cotton.zip", "w") as archive:
+        archive.writestr("Cotton.sfc", BODY)
+    s.store.want("Cotton - Fantastic Night Dreams", "snes")
+
+    result = s.reconcile_platform("snes")
+
+    assert reads == []
+    assert result["count"] == 1
+    assert s.store.wanted == []
